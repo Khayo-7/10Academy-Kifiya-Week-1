@@ -5,7 +5,7 @@ touch .gitignore README.md notebooks/README.md tests/__init__.py scripts/{init.p
 # powershell bash
 python -m venv env
 .\env\Scripts\activate
-pip install pandas numpy matplotlib seaborn streamlit windrose
+pip install pandas numpy matplotlib seaborn scipy streamlit windrose
 pip freeze > requirements.txt
 
 # Git bash
