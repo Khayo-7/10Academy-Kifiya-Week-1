@@ -7,20 +7,22 @@ import pandas as pd
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Helper functions
-def extract_datasets(input_data_path: str, extract_path: str) -> None:
+def extract_datasets(input_data_path: str, folder_path: str) -> None:
     """
     Extract datasets from a zip file.
     Args:
         input_data_path (str): Path to the input zip file.
-        extract_path (str): Path to extract the contents.
+        folder_path (str): Path to extract the contents.
     """
-    if not os.path.exists(extract_path):
-        os.makedirs(extract_path)
+    # Ensure the folder exists
+    if not os.path.exists(folder_path):
+        logging.info(f"Creating folder: {folder_path}")
+        os.makedirs(folder_path)
 
     try:
         with zipfile.ZipFile(input_data_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_path)
-            logging.info(f"Extracted {input_data_path} to {extract_path}")
+            zip_ref.extractall(folder_path)
+            logging.info(f"Extracted {input_data_path} to {folder_path}")
     except Exception as e:
         logging.error(f"Failed to extract {input_data_path}: {e}")
         raise
@@ -114,7 +116,7 @@ def load_analyst_ratings(file_path: str) -> pd.DataFrame:
         logging.error(f"Error while loading analyst ratings: {e}")
         raise
 
-def load_yfinance_data(zip_path: str, folder_path: str = "./datasets/raw/yfinance_data") -> dict:
+def load_yfinance_data(folder_path: str = "./datasets/raw/yfinance_data") -> dict:
     """
     Load stock data from a yfinance zip file containing multiple CSVs.
     Args:
@@ -126,20 +128,10 @@ def load_yfinance_data(zip_path: str, folder_path: str = "./datasets/raw/yfinanc
     data_frames = {}
     
     try:
-        # Ensure the folder exists
-        if not os.path.exists(folder_path):
-            logging.info(f"Creating folder: {folder_path}")
-            os.makedirs(folder_path)
-
-        # Extract datasets if the folder is empty
-        if not os.listdir(folder_path):
-            logging.info(f"Extracting datasets from {zip_path} to {folder_path}")
-            extract_datasets(zip_path, folder_path)
-
         # Load CSV files from the folder
         for file in os.listdir(folder_path):
             if file.endswith('.csv'):
-                stock_name = file.split('.')[0]
+                stock_name = file.split('.')[0].split('_')[0]
                 logging.info(f"Loading {file}...")
                 data_frames[stock_name] = pd.read_csv(os.path.join(folder_path, file))
                 logging.info(f"{file} loaded successfully!")
@@ -147,7 +139,7 @@ def load_yfinance_data(zip_path: str, folder_path: str = "./datasets/raw/yfinanc
         return data_frames
 
     except FileNotFoundError:
-        logging.error(f"File not found: {zip_path}")
+        logging.error(f"Files not found: {folder_path}")
         raise
     except Exception as e:
         logging.error(f"Error while loading data from zip file: {e}")
