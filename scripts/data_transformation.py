@@ -32,41 +32,41 @@ def preprocess_text(text):
     return ' '.join(tokens)
 
 # Numerical Data Normalization
-def normalize_numeric_columns(df, numeric_columns):
+def normalize_numeric_columns(dataframe, numeric_columns):
     """Normalizes numeric columns using StandardScaler."""
     scaler = StandardScaler()
-    df[numeric_columns] = scaler.fit_transform(df[numeric_columns])
-    return df
+    dataframe[numeric_columns] = scaler.fit_transform(dataframe[numeric_columns])
+    return dataframe
 
 # Categorical Data Encoding
-def encode_categorical_columns(df, categorical_columns):
+def encode_categorical_columns(dataframe, categorical_columns):
     """Encodes categorical columns using LabelEncoder."""
     label_encoders = {}
     for column in categorical_columns:
         le = LabelEncoder()
-        df[column] = le.fit_transform(df[column].astype(str))
+        dataframe[column] = le.fit_transform(dataframe[column].astype(str))
         label_encoders[column] = le
-    return df, label_encoders
+    return dataframe, label_encoders
 
 
 # Handle Missing Values
-def handle_missing_values(df, strategy='mean', columns=None):
+def handle_missing_values(dataframe, strategy='mean', columns=None):
     """Fills missing values based on the given strategy."""
     if not columns:
-        columns = df.columns
+        columns = dataframe.columns
 
     for col in columns:
-        if df[col].isnull().sum() > 0:
+        if dataframe[col].isnull().sum() > 0:
             if strategy == 'mean':
-                df[col] = df[col].fillna(df[col].mean())
+                dataframe[col] = dataframe[col].fillna(dataframe[col].mean())
             elif strategy == 'median':
-                df[col] = df[col].fillna(df[col].median())
+                dataframe[col] = dataframe[col].fillna(dataframe[col].median())
             elif strategy == 'mode':
-                df[col] = df[col].fillna(df[col].mode()[0])
-    return df
+                dataframe[col] = dataframe[col].fillna(dataframe[col].mode()[0])
+    return dataframe
 
 # Data Cleaning and Preprocessing
-def clean_and_preprocess_data(df, date_column='date', text_columns=[], numeric_columns=[], categorical_columns=[], delete_columns=[], drop_duplicates=True, drop_na=True):
+def clean_and_preprocess_data(dataframe, date_column='date', text_columns=[], numeric_columns=[], categorical_columns=[], delete_columns=[], drop_duplicates=True, drop_na=True):
     """
     Cleans and preprocesses the data.
 
@@ -76,38 +76,38 @@ def clean_and_preprocess_data(df, date_column='date', text_columns=[], numeric_c
     # --- Data Cleaning ---
     print("[INFO] Cleaning data...")
     if delete_columns:
-        df = df.drop(columns=delete_columns)
+        dataframe = dataframe.drop(columns=delete_columns)
     if drop_duplicates:
-        df = df.drop_duplicates()  # Remove duplicates
+        dataframe = dataframe.drop_duplicates()  # Remove duplicates
     if drop_na:
-        df = df.dropna(subset=["headline", date_column, "stock"])  # Drop rows with missing values
+        dataframe = dataframe.dropna(subset=["headline", date_column, "stock"])  # Drop rows with missing values
     elif numeric_columns:
-        df = handle_missing_values(df, strategy='mean', columns=numeric_columns)
-    df[date_column] = pd.to_datetime(df[date_column], format='mixed', utc=True).dt.tz_convert('UTC')  # Normalize timestamps
+        dataframe = handle_missing_values(dataframe, strategy='mean', columns=numeric_columns)
+    dataframe[date_column] = pd.to_datetime(dataframe[date_column], format='mixed', utc=True).dt.tz_convert('UTC')  # Normalize timestamps
     
     print("[INFO] Data cleaning completed.")
 
     # --- Data Transformation ---
     print("[INFO] Transforming data...")
     for column in text_columns:
-        df[column] = df[column].astype(str).apply(preprocess_text)
+        dataframe[column] = dataframe[column].astype(str).apply(preprocess_text)
     if numeric_columns:
-        df = normalize_numeric_columns(df, numeric_columns)
+        dataframe = normalize_numeric_columns(dataframe, numeric_columns)
     label_encoders = {}
     if categorical_columns:
-        df, label_encoders = encode_categorical_columns(df, categorical_columns)
+        dataframe, label_encoders = encode_categorical_columns(dataframe, categorical_columns)
         
     print("[INFO] Data transformation completed.")
 
-    return df, label_encoders
+    return dataframe, label_encoders
 
 def merge_dataframes(dataframes, tickers, column, start_date=None, end_date=None):
     
     # Set default start and end dates if not provided
     if start_date is None:
-        start_date = max(df['Date'].min() for df in dataframes.values())
+        start_date = max(dataframe['Date'].min() for dataframe in dataframes.values())
     if end_date is None:
-        end_date = min(df['Date'].max() for df in dataframes.values())
+        end_date = min(dataframe['Date'].max() for dataframe in dataframes.values())
     
     return pd.concat(
         [
