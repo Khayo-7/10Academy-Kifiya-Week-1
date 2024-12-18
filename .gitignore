@@ -1,4 +1,16 @@
-data/
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.python-version
+
+# Virtual environment
+.env
 env/
+
+# Data files
 **/*.csv
 
+# Gitignore
+# .gitignore
