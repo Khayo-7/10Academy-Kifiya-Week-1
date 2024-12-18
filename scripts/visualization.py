@@ -65,14 +65,14 @@ def plot_bar(column, title, xlabel="", ylabel="", color=DEFAULT_COLOR, figsize=D
     plt.tight_layout()
     plt.show()
 
-def plot_dataframe(df, title, xlabel='', ylabel='', mode='line', marker=DEFAULT_MARKER, color=DEFAULT_COLOR, figsize=DEFAULT_FIGSIZE, grid=True):
+def plot_dataframe(dataframe, title, xlabel='', ylabel='', mode='line', marker=DEFAULT_MARKER, color=DEFAULT_COLOR, figsize=DEFAULT_FIGSIZE, grid=True):
     """Plots the trend of the column during an event."""
     
     plt.figure(figsize=figsize)
     if mode == 'line':
-        df.plot(kind=mode, marker=marker, color=color)
+        dataframe.plot(kind=mode, marker=marker, color=color)
     else:
-        df.plot(kind=mode, color=color)
+        dataframe.plot(kind=mode, color=color)
     plt.title(title)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -87,13 +87,13 @@ def plot_dataframes(data, title, xlabel='', ylabel='', mode='line', marker=DEFAU
     
     plt.figure(figsize=figsize)
 
-    for i, (name, df) in enumerate(data.items()):
+    for i, (name, dataframe) in enumerate(data.items()):
         plt.subplot(len(data), 1, i+1)
 
         if mode == 'line':
-            df.plot(kind=mode, title=title, label=name, color=color, marker=marker)
+            dataframe.plot(kind=mode, title=title, label=name, color=color, marker=marker)
         else:
-            df.plot(kind=mode, title=title, label=name, color=color)
+            dataframe.plot(kind=mode, title=title, label=name, color=color)
 
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -176,7 +176,7 @@ def plot_sentiment_over_time(data, date_column, sentiment_column, title, xlabel=
     Plots average sentiment scores over time.
 
     Parameters:
-        sentiment_df (pd.DataFrame): Dataframe containing sentiment data
+        sentiment_dataframe (pd.DataFrame): Dataframe containing sentiment data
         date_column (str): Name of the date column
         sentiment_column (str): Name of the sentiment score column
         title (str): Title of the plot
@@ -204,13 +204,13 @@ def plot_correlation_matrix(data, method="pearson", title="Correlation Matrix"):
     corr_matrix = data.corr(method=method)
     plot_sns(corr_matrix, title=title, xlabel="", ylabel="", mode='heatmap')
 
-def plot_correlation_heatmap(df, columns):
+def plot_correlation_heatmap(dataframe, columns):
     """Plots a heatmap of correlations between specified columns."""
     
-    if not all(col in df.columns for col in columns):
+    if not all(col in dataframe.columns for col in columns):
         raise ValueError("Some specified columns are not in the dataset.")
 
-    corr_matrix = df[columns].corr()
+    corr_matrix = dataframe[columns].corr()
     plot_sns(corr_matrix, title='Correlation Heatmap', xlabel="", ylabel="", mode='heatmap')
 
 def plot_stock_data(hist):
@@ -245,38 +245,38 @@ def plot_indicators(data, indicators, title):
     fig = px.line(data, x=data.index, y=indicators, title=title)
     fig.show()
  
-def plot_interactive_stock_chart(df, stock_column="Close"):
+def plot_interactive_stock_chart(dataframe, stock_column="Close"):
     """
     Plots an interactive stock chart using Plotly.
 
     Parameters:
-        df (pd.DataFrame): Dataframe containing stock data
+        dataframe (pd.DataFrame): Dataframe containing stock data
         stock_column (str): Name of the stock price column
     """
     fig = go.Figure(data=[
         go.Candlestick(
-            x=df.index,
-            open=df['Open'],
-            high=df['High'],
-            low=df['Low'],
-            close=df['Close']
+            x=dataframe.index,
+            open=dataframe['Open'],
+            high=dataframe['High'],
+            low=dataframe['Low'],
+            close=dataframe['Close']
         )
     ])
     fig.update_layout(title_text="Interactive Stock Chart", xaxis_title="Date", yaxis_title=stock_column)
     fig.show()
 
-def plot_stock_vs_sentiment(merged_df, date_column, sentiment_column, stock_metric):
+def plot_stock_vs_sentiment(merged_dataframe, date_column, sentiment_column, stock_metric):
     """Plots sentiment and stock metric over time."""
     
-    if date_column not in merged_df.columns or sentiment_column not in merged_df.columns or stock_metric not in merged_df.columns:
+    if date_column not in merged_dataframe.columns or sentiment_column not in merged_dataframe.columns or stock_metric not in merged_dataframe.columns:
         raise ValueError("Required columns not found in the dataset.")
 
     plt.figure(figsize=(12, 8))
     ax1 = plt.gca()
     ax2 = ax1.twinx()
 
-    sns.lineplot(x=date_column, y=sentiment_column, data=merged_df, color='blue', ax=ax1, label='Sentiment')
-    sns.lineplot(x=date_column, y=stock_metric, data=merged_df, color='green', ax=ax2, label='Stock Metric')
+    sns.lineplot(x=date_column, y=sentiment_column, data=merged_dataframe, color='blue', ax=ax1, label='Sentiment')
+    sns.lineplot(x=date_column, y=stock_metric, data=merged_dataframe, color='green', ax=ax2, label='Stock Metric')
 
     ax1.set_ylabel('Average Sentiment', color='blue')
     ax2.set_ylabel(stock_metric, color='green')
@@ -334,3 +334,42 @@ def plot_distributions(data):
         plt.xlabel(column)
         plt.ylabel('Frequency')
         plt.show()
+
+def plot_scatter(x, y, title, xlabel, ylabel, color='blue', alpha=0.7, figsize=(8, 6)):
+    """Plots a scatter plot."""
+
+    # data = pd.DataFrame({xlabel: x, ylabel: y})
+    # plot_sns(data, title, xlabel, ylabel, mode='scatter', figsize=figsize, grid=True)
+    plt.figure(figsize=figsize)
+    plt.scatter(x, y, color=color, alpha=alpha)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+
+    
+
+def plot_correlation_matrix(dataframe, title="Correlation Matrix"):
+    """Plot correlation matrix."""
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(dataframe.corr(), annot=True, fmt=".2f", cmap="coolwarm")
+    plt.title(title)
+    plt.show()
+
+def plot_scatter(x, y, title, xlabel, ylabel, **kwargs):
+    """Plot scatter plot for comparisons."""
+    plt.scatter(x, y, **kwargs)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.show()
+
+def plot_portfolio_returns(dataframe, columns, title="Portfolio Returns"):
+    """Plot cumulative returns."""
+    dataframe[columns].plot(figsize=(10, 6))
+    plt.title(title)
+    plt.ylabel("Cumulative Returns")
+    plt.show()

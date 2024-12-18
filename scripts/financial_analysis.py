@@ -22,10 +22,20 @@ def generate_signals(data):
     signals[data['RSI'] > 70] = -1  # Sell
     return signals
 
-def calculate_daily_return(data):
+def calculate_RSI(data, price_column='Close'):
+    """Calculate Relative Strength Index (RSI)."""
+
+    return ta.RSI(data[price_column], timeperiod=14)
+
+def calculate_volatility(high, low, open_price):
+    """Calculate daily stock volatility for given high, low, and open prices."""
+
+    return (high - low) / open_price
+
+def calculate_daily_return(data, price_column='Close'):
     """Calculates daily returns."""
     
-    return data['Close'].pct_change()
+    return data[price_column].pct_change()
 
 def calculate_strategy_return(data):
     """Calculates strategy returns based on signals."""
@@ -39,12 +49,12 @@ def get_strategy_returns(dataframes, tickers):
     has 'Date' as the index and tickers as the columns.
     """
     
-    def process_strategy_returns(df):
-        df = df.copy()
-        df['Signal'] = generate_signals(df)
-        df['Daily_Return'] = calculate_daily_return(df)
-        df['Strategy_Return'] = calculate_strategy_return(df)
-        return df[['Date', 'Strategy_Return']]  # Preserve Date explicitly
+    def process_strategy_returns(dataframe):
+        dataframe = dataframe.copy()
+        dataframe['Signal'] = generate_signals(dataframe)
+        dataframe['Daily_Return'] = calculate_daily_return(dataframe)
+        dataframe['Strategy_Return'] = calculate_strategy_return(dataframe)
+        return dataframe[['Date', 'Strategy_Return']]  # Preserve Date explicitly
 
     strategy_returns = []
 
@@ -78,27 +88,51 @@ def create_performance_tear_sheet_multiple(strategy_returns, tickers=None):
     
     return pf.create_simple_tear_sheet(strategy_returns.mean(axis=1).dropna())
 
-def calculate_technical_indicators(data):
-    """ Calculate various technical indicators and return them as a dictionary """
+def calculate_technical_indicators(data, price_column='Close'):
+    """ 
+    Calculate various technical indicators based on a specified price column and return them as a dictionary.
+    
+    Parameters:
+    - data: DataFrame containing the stock data.
+    - price_column: The column name to use for price-based calculations (default is 'Close').
+    
+    Returns:
+    - indicators: Dictionary of calculated technical indicators.
+    """
     
     indicators = {}
-    indicators['SMA'] = ta.SMA(data['Close'], timeperiod=20)
-    indicators['RSI'] = ta.RSI(data['Close'], timeperiod=14)
-    indicators['EMA'] = ta.EMA(data['Close'], timeperiod=20)
-    macd, macd_signal, macd_hist = ta.MACD(data['Close']) #, fastperiod=12, slowperiod=26, signalperiod=9)
+    indicators['SMA'] = ta.SMA(data[price_column], timeperiod=20)
+    indicators['RSI'] = ta.RSI(data[price_column], timeperiod=14)
+    indicators['EMA'] = ta.EMA(data[price_column], timeperiod=20)
+    macd, macd_signal, macd_hist = ta.MACD(data[price_column])
     indicators['MACD'] = macd
     indicators['MACD_Signal'] = macd_signal
     indicators['MACD_Hist'] = macd_hist
-    indicators['WMA'] = ta.WMA(data['Close'], timeperiod=20)  # Weighted Moving Average
-    bb_upper, bb_middle, bb_lower = ta.BBANDS(data['Close'], timeperiod=20)  # Bollinger Bands
+    indicators['WMA'] = ta.WMA(data[price_column], timeperiod=20)
+    indicators['ROC'] = ta.ROC(data[price_column], timeperiod=10)
+    indicators['MACD_hist'] = indicators['MACD'] - indicators['MACD_Signal']
+
+    return indicators
+
+def calculate_multi_value_indicators(data):
+    """ 
+    Calculate technical indicators that require multiple data columns and return them as a dictionary.
+    
+    Parameters:
+    - data: DataFrame containing the stock data.
+    
+    Returns:
+    - indicators: Dictionary of calculated technical indicators that require multiple columns.
+    """
+    
+    indicators = {}
+    bb_upper, bb_middle, bb_lower = ta.BBANDS(data['Close'], timeperiod=20)
     indicators['BB_upper'] = bb_upper
     indicators['BB_middle'] = bb_middle
     indicators['BB_lower'] = bb_lower
-    indicators['ATR'] = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=14)  # Average True Range
-    indicators['ADX'] = ta.ADX(data['High'], data['Low'], data['Close'], timeperiod=14)  # Average Directional Index
-    indicators['CCI'] = ta.CCI(data['High'], data['Low'], data['Close'], timeperiod=20)  # Commodity Channel Index
-    indicators['ROC'] = ta.ROC(data['Close'], timeperiod=10)  # Rate of Change
-    indicators['MACD_hist'] = indicators['MACD'] - indicators['MACD_Signal']
+    indicators['ATR'] = ta.ATR(data['High'], data['Low'], data['Close'], timeperiod=14)
+    indicators['ADX'] = ta.ADX(data['High'], data['Low'], data['Close'], timeperiod=14)
+    indicators['CCI'] = ta.CCI(data['High'], data['Low'], data['Close'], timeperiod=20)
 
     return indicators
 
@@ -133,6 +167,25 @@ def calculate_portfolio_weights(data, tickers):
     ef = EfficientFrontier(mu, cov)
     weights = ef.max_sharpe()
     return dict(zip(tickers, weights.values()))
+
+def analyze_portfolio_performance(returns, weights=None):
+    """
+    Analyze the performance of a portfolio using pyfolio.
+    You can optionally provide `weights` for weighted performance analysis.
+    If no weights are provided, an equal-weighted portfolio will be used.
+    """
+    if weights is None:
+        # If no weights provided, use equal weights
+        weights = [1.0 / len(returns.columns)] * len(returns.columns)
+    
+    # Calculate the portfolio's weighted returns if weights are provided
+    weighted_returns = (returns * weights).sum(axis=1)
+    
+    # Use PyFolio to analyze the portfolio's performance
+    pf.create_simple_tear_sheet(weighted_returns)
+    pf.create_turnover_tear_sheet(weighted_returns)
+    
+    return weighted_returns
 
 def calculate_portfolio_performance(data):
     """
@@ -237,3 +290,44 @@ def optimize_portfolio(returns, risk_free_rate=0.0, method='sharpe'):
     sharpe_ratio = (portfolio_return - risk_free_rate) / portfolio_volatility
 
     return {'weights': weights.tolist(), 'performance': {'return': portfolio_return, 'volatility': portfolio_volatility, 'sharpe_ratio': sharpe_ratio}}
+
+
+# def calculate_RSI_2(series, period=14):
+#     """Calculate Relative Strength Index (RSI)."""
+#     delta = series.diff()
+#     gain = np.where(delta > 0, delta, 0)
+#     loss = np.where(delta < 0, -delta, 0)
+#     avg_gain = pd.Series(gain).rolling(window=period, min_periods=1).mean()
+#     avg_loss = pd.Series(loss).rolling(window=period, min_periods=1).mean()
+#     rs = avg_gain / avg_loss
+#     return 100 - (100 / (1 + rs))
+
+# def calculate_portfolio_performance_2(dataframe, weights):
+#     """Calculate portfolio performance metrics."""
+
+#     daily_returns = dataframe.pct_change()
+#     portfolio_return = (daily_returns * weights).sum(axis=1).mean()
+#     portfolio_risk = np.sqrt(np.dot(weights.T, np.dot(daily_returns.cov(), weights)))
+#     sharpe_ratio = portfolio_return / portfolio_risk
+
+#     return portfolio_return, portfolio_risk, sharpe_ratio
+
+def calculate_portfolio_indicators_2(dataframe):
+    """Calculate and print portfolio indicators like mean return and risk."""
+    
+    return_mean = dataframe.pct_change().mean() * 252
+    return_std = dataframe.pct_change().std() * np.sqrt(252)
+    return return_mean, return_std
+
+def combine_stock_data(dataframes, tickers):
+    """ Combine closing prices of multiple tickers into a single DataFrame. """
+    
+    stock_prices = pd.DataFrame({ticker: dataframes[ticker]['Close'] for ticker in tickers})
+    stock_prices = stock_prices.align(dataframes[tickers[0]][['Date']], join='inner', axis=0)
+    return stock_prices
+
+def calculate_returns_for_tickers(stock_prices):
+    """ Calculate daily returns for the combined stock data. """
+
+    return stock_prices.pct_change().dropna()
+
